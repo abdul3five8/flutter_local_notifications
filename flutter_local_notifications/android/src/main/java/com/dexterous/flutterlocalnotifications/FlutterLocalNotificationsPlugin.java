@@ -348,7 +348,14 @@ public class FlutterLocalNotificationsPlugin
     }
 
     if (BooleanUtils.getValue(notificationDetails.fullScreenIntent)) {
-      builder.setFullScreenIntent(pendingIntent, true);
+      Intent fullScreenIntent = getFullScreenIntent(notificationDetails);
+      if (fullScreenIntent.resolveActivity(context.getPackageManager()) == null) {
+        // fallback to launch intent when no activity declared with given action
+        fullScreenIntent = intent;
+      }
+      PendingIntent fullScreenPendingIntent =
+              PendingIntent.getActivity(context, notificationDetails.id, fullScreenIntent, flags);
+      builder.setFullScreenIntent(fullScreenPendingIntent, true);
     }
 
     if (!StringUtils.isNullOrEmpty(notificationDetails.shortcutId)) {
@@ -862,6 +869,14 @@ public class FlutterLocalNotificationsPlugin
     String packageName = context.getPackageName();
     PackageManager packageManager = context.getPackageManager();
     return packageManager.getLaunchIntentForPackage(packageName);
+  }
+
+  private static Intent getFullScreenIntent(NotificationDetails notificationDetails) {
+    Intent fullScreenIntent = new Intent();
+    fullScreenIntent.setAction("com.dexterous.intent.action.NOTIFICATION_FULL_SCREEN");
+    fullScreenIntent.putExtra(NOTIFICATION_ID, notificationDetails.id);
+    fullScreenIntent.putExtra(PAYLOAD, notificationDetails.payload);
+    return fullScreenIntent;
   }
 
   private static void setStyle(
